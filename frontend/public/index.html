@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ERP Ferretería Cristobal barrigaACME</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background: #f4f4f4; }
+    h1 { color: #d35400; text-align: center; }
+    .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    input, textarea { width: 100%; padding: 8px; margin: 5px 0 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+    button { background: #d35400; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; }
+    button:hover { background: #b03a00; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #d35400; color: white; padding: 10px; }
+    td { padding: 10px; border-bottom: 1px solid #ddd; text-align: center; }
+    tr:hover { background: #fff3ee; }
+  </style>
+</head>
+<body>
+  <h1>🔧 ERP Ferretería ACME</h1>
+  <div class="card">
+    <h2>Agregar Producto</h2>
+    <input type="text" id="nombre" placeholder="Nombre del producto">
+    <textarea id="descripcion" placeholder="Descripción" rows="2"></textarea>
+    <input type="number" id="precio" placeholder="Precio (CLP)">
+    <input type="number" id="stock" placeholder="Stock disponible">
+    <button onclick="agregarProducto()">➕ Agregar Producto</button>
+  </div>
+  <div class="card">
+    <h2>📦 Inventario de Productos</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>Nombre</th><th>Descripción</th><th>Precio</th><th>Stock</th>
+        </tr>
+      </thead>
+      <tbody id="tabla-productos"></tbody>
+    </table>
+  </div>
+  <script>
+    async function cargarProductos() {
+      const res = await fetch('/api/productos');
+      const productos = await res.json();
+      const tbody = document.getElementById('tabla-productos');
+      tbody.innerHTML = '';
+      productos.forEach(p => {
+        tbody.innerHTML += `<tr>
+          <td>${p.id}</td>
+          <td>${p.nombre}</td>
+          <td>${p.descripcion}</td>
+          <td>$${Number(p.precio).toLocaleString('es-CL')}</td>
+          <td>${p.stock}</td>
+        </tr>`;
+      });
+    }
+    async function agregarProducto() {
+      const nombre = document.getElementById('nombre').value;
+      const descripcion = document.getElementById('descripcion').value;
+      const precio = document.getElementById('precio').value;
+      const stock = document.getElementById('stock').value;
+      if (!nombre || !precio || !stock) { alert('Completa todos los campos obligatorios'); return; }
+      await fetch('/api/productos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre, descripcion, precio, stock })
+      });
+      document.getElementById('nombre').value = '';
+      document.getElementById('descripcion').value = '';
+      document.getElementById('precio').value = '';
+      document.getElementById('stock').value = '';
+      cargarProductos();
+    }
+    cargarProductos();
+  </script>
+</body>
+</html>
