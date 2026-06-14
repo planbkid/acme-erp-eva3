@@ -5,14 +5,6 @@ services:
     container_name: acme-frontend
     ports:
       - "80:3000"
-    environment:
-      - DB_HOST=10.0.133.48
-      - DB_USER=acme_user
-      - DB_PASS=acme1234
-      - DB_NAME=acme_erp
-    networks:
-      - acme-net
+    env_file:
+      - .env
     restart: always
-networks:
-  acme-net:
-    driver: bridge

@@ -3,75 +3,146 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ERP Ferretería Cristobal barrigaACME</title>
+  <title>ERP Ferretería ACME</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background: #f4f4f4; }
-    h1 { color: #d35400; text-align: center; }
-    .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    input, textarea { width: 100%; padding: 8px; margin: 5px 0 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-    button { background: #d35400; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; }
-    button:hover { background: #b03a00; }
-    table { width: 100%; border-collapse: collapse; }
-    th { background: #d35400; color: white; padding: 10px; }
-    td { padding: 10px; border-bottom: 1px solid #ddd; text-align: center; }
-    tr:hover { background: #fff3ee; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body { background: #f0f2f5; color: #333; }
+    header { background: #1a3c5e; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    header h1 { font-size: 1.3rem; }
+    .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+    .card { background: white; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); padding: 2rem; margin-bottom: 1.5rem; }
+    .login-box { max-width: 380px; margin: 5rem auto; }
+    h2 { margin-bottom: 1rem; color: #1a3c5e; }
+    input { width: 100%; padding: 0.6rem; margin-bottom: 0.8rem; border: 1px solid #ccc; border-radius: 4px; }
+    button { background: #1a3c5e; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 4px; cursor: pointer; font-size: 1rem; }
+    button:hover { background: #14304a; }
+    .logout { background: #c0392b; padding: 0.4rem 0.9rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { padding: 0.6rem; text-align: left; border-bottom: 1px solid #eee; }
+    th { background: #f7f9fb; }
+    .error { color: #c0392b; margin-bottom: 0.8rem; font-size: 0.9rem; }
+    .hidden { display: none; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
   </style>
 </head>
 <body>
-  <h1>🔧 ERP Ferretería ACME</h1>
-  <div class="card">
-    <h2>Agregar Producto</h2>
-    <input type="text" id="nombre" placeholder="Nombre del producto">
-    <textarea id="descripcion" placeholder="Descripción" rows="2"></textarea>
-    <input type="number" id="precio" placeholder="Precio (CLP)">
-    <input type="number" id="stock" placeholder="Stock disponible">
-    <button onclick="agregarProducto()">➕ Agregar Producto</button>
+  <div id="loginScreen">
+    <div class="card login-box">
+      <h2>ERP Ferretería ACME</h2>
+      <p style="margin-bottom:1rem;color:#777;font-size:0.9rem;">Acceso restringido — ingrese sus credenciales</p>
+      <div id="loginError" class="error"></div>
+      <input type="text" id="username" placeholder="Usuario">
+      <input type="password" id="password" placeholder="Contraseña">
+      <button onclick="login()">Ingresar</button>
+    </div>
   </div>
-  <div class="card">
-    <h2>📦 Inventario de Productos</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th><th>Nombre</th><th>Descripción</th><th>Precio</th><th>Stock</th>
-        </tr>
-      </thead>
-      <tbody id="tabla-productos"></tbody>
-    </table>
+
+  <div id="appScreen" class="hidden">
+    <header>
+      <h1>ERP Ferretería ACME</h1>
+      <button class="logout" onclick="logout()">Cerrar sesión</button>
+    </header>
+    <div class="container">
+      <div class="card">
+        <h2>Agregar producto</h2>
+        <div class="grid">
+          <input type="text" id="nombre" placeholder="Nombre">
+          <input type="text" id="descripcion" placeholder="Descripción">
+          <input type="number" id="precio" placeholder="Precio" step="0.01">
+          <input type="number" id="stock" placeholder="Stock">
+        </div>
+        <button onclick="agregarProducto()">Guardar producto</button>
+      </div>
+      <div class="card">
+        <h2>Inventario</h2>
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Precio</th><th>Stock</th></tr>
+          </thead>
+          <tbody id="tablaProductos"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
+
   <script>
-    async function cargarProductos() {
-      const res = await fetch('/api/productos');
-      const productos = await res.json();
-      const tbody = document.getElementById('tabla-productos');
-      tbody.innerHTML = '';
-      productos.forEach(p => {
-        tbody.innerHTML += `<tr>
-          <td>${p.id}</td>
-          <td>${p.nombre}</td>
-          <td>${p.descripcion}</td>
-          <td>$${Number(p.precio).toLocaleString('es-CL')}</td>
-          <td>${p.stock}</td>
-        </tr>`;
-      });
+    function getToken() { return sessionStorage.getItem('token'); }
+
+    async function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const errorBox = document.getElementById('loginError');
+      errorBox.textContent = '';
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) { errorBox.textContent = data.error || 'Error de acceso'; return; }
+        sessionStorage.setItem('token', data.token);
+        mostrarApp();
+      } catch (e) {
+        errorBox.textContent = 'No se pudo conectar al servidor';
+      }
     }
+
+    function logout() {
+      sessionStorage.removeItem('token');
+      document.getElementById('appScreen').classList.add('hidden');
+      document.getElementById('loginScreen').classList.remove('hidden');
+    }
+
+    function mostrarApp() {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('appScreen').classList.remove('hidden');
+      cargarProductos();
+    }
+
+    async function cargarProductos() {
+      try {
+        const res = await fetch('/api/productos', {
+          headers: { 'Authorization': 'Bearer ' + getToken() }
+        });
+        if (res.status === 401 || res.status === 403) { logout(); return; }
+        const productos = await res.json();
+        const tbody = document.getElementById('tablaProductos');
+        tbody.innerHTML = '';
+        productos.forEach(p => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = '<td>' + p.id + '</td><td>' + p.nombre + '</td><td>' + (p.descripcion || '') + '</td><td>$' + p.precio + '</td><td>' + p.stock + '</td>';
+          tbody.appendChild(tr);
+        });
+      } catch (e) {
+        console.error('Error cargando productos', e);
+      }
+    }
+
     async function agregarProducto() {
       const nombre = document.getElementById('nombre').value;
       const descripcion = document.getElementById('descripcion').value;
       const precio = document.getElementById('precio').value;
       const stock = document.getElementById('stock').value;
-      if (!nombre || !precio || !stock) { alert('Completa todos los campos obligatorios'); return; }
-      await fetch('/api/productos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, descripcion, precio, stock })
-      });
-      document.getElementById('nombre').value = '';
-      document.getElementById('descripcion').value = '';
-      document.getElementById('precio').value = '';
-      document.getElementById('stock').value = '';
-      cargarProductos();
+      if (!nombre || !precio) { alert('Nombre y precio son obligatorios'); return; }
+      try {
+        const res = await fetch('/api/productos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+          body: JSON.stringify({ nombre, descripcion, precio, stock: stock || 0 })
+        });
+        if (res.status === 401 || res.status === 403) { logout(); return; }
+        document.getElementById('nombre').value = '';
+        document.getElementById('descripcion').value = '';
+        document.getElementById('precio').value = '';
+        document.getElementById('stock').value = '';
+        cargarProductos();
+      } catch (e) {
+        alert('Error al agregar producto');
+      }
     }
-    cargarProductos();
+
+    if (getToken()) { mostrarApp(); }
   </script>
 </body>
 </html>
